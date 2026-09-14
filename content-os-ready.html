@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#0A0F1A; --panel:#10182A; --card:#151F35; --card-hover:#1B2740;
+    --border:#223049; --text:#EAF0F6; --muted:#7C8AA0;
+    --teal:#35B4A6; --teal-dim:#1F5F58; --gold:#E4A73B; --coral:#E0665C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Vazirmatn',sans-serif; min-height:100vh; font-size:15px;}
+  .hidden{display:none !important;}
+
+  /* ---- Auth screen ---- */
+  #auth-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .auth-box{
+    background:var(--panel); border:1px solid var(--border); border-radius:18px;
+    width:100%; max-width:340px; padding:28px; display:flex; flex-direction:column; gap:14px;
+  }
+  .auth-box h1{ font-size:20px; font-weight:800; text-align:center; }
+  .auth-box p.sub{ font-size:12.5px; color:var(--muted); text-align:center; margin-top:-8px;}
+  .field label{ font-size:12px; color:var(--muted); display:block; margin-bottom:5px; }
+  .field input, .field select, .field textarea{
+    width:100%; background:var(--card); border:1px solid var(--border); color:var(--text);
+    font-family:inherit; font-size:13.5px; padding:10px 11px; border-radius:9px;
+  }
+  .btn{
+    border:none; font-family:inherit; font-weight:700; font-size:13.5px;
+    padding:11px; border-radius:10px; cursor:pointer; transition:filter .15s, transform .15s;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn-primary{ background:var(--teal); color:#06201C; }
+  .btn-primary:hover{ filter:brightness(1.08); }
+  .btn-ghost{ background:var(--card); color:var(--muted); }
+  .auth-toggle{ text-align:center; font-size:12.5px; color:var(--muted); cursor:pointer; }
+  .auth-toggle b{ color:var(--teal); }
+  #auth-error{ font-size:12px; color:var(--coral); text-align:center; min-height:14px; }
+
+  /* ---- App shell ---- */
+  #app{ display:flex; }
+  .sidebar{
+    width:220px; flex-shrink:0; background:var(--panel); border-left:1px solid var(--border);
+    padding:24px 18px; display:flex; flex-direction:column; gap:20px; height:100vh; position:sticky; top:0;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand-mark{ width:30px; height:30px; border-radius:9px; background:linear-gradient(135deg,var(--teal),var(--teal-dim)); position:relative; flex-shrink:0; }
+  .brand-mark::before,.brand-mark::after{ content:''; position:absolute; background:var(--bg); border-radius:2px; }
+  .brand-mark::before{ width:12px; height:3px; top:9px; right:9px; }
+  .brand-mark::after{ width:3px; height:12px; top:9px; right:9px; }
+  .brand-name{ font-weight:800; font-size:17px; }
+  .brand-sub{ font-size:11px; color:var(--muted); }
+  .projects-list{ display:flex; flex-direction:column; gap:3px; overflow-y:auto; flex:1; }
+  .proj-item{
+    display:flex; flex-direction:column; gap:2px; padding:9px 10px; border-radius:9px;
+    color:var(--muted); font-size:13.5px; font-weight:500; cursor:pointer;
+  }
+  .proj-item:hover{ background:var(--card); color:var(--text); }
+  .proj-item.active{ background:var(--teal-dim); color:#fff; }
+  .proj-item small{ font-size:10.5px; opacity:.8; font-weight:400; }
+  .sidebar-footer{ font-size:11.5px; color:var(--muted); border-top:1px solid var(--border); padding-top:12px; display:flex; justify-content:space-between; align-items:center; }
+  .sidebar-footer span{ cursor:pointer; text-decoration:underline; }
+
+  main{ flex:1; padding:26px 32px; min-width:0; }
+  .topbar{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px; gap:16px; flex-wrap:wrap; }
+  .topbar h1{ font-size:21px; font-weight:800; }
+  .topbar p{ color:var(--muted); font-size:13px; margin-top:4px; }
+  .add-btn{ background:var(--teal); color:#06201C; border:none; font-family:inherit; font-weight:700; font-size:13px; padding:9px 15px; border-radius:999px; cursor:pointer; }
+
+  .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:18px; overflow-x:auto; }
+  .tab{ padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
+  .tab.active{ color:var(--text); border-color:var(--teal); }
+
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+  .item-card{
+    background:var(--card); border-radius:14px; padding:13px; border-right:3px solid var(--border);
+    display:flex; flex-direction:column; gap:7px; cursor:default;
+  }
+  .item-card .tag{ font-size:10.5px; color:var(--muted); }
+  .item-card .title{ font-size:13.5px; font-weight:600; }
+  .item-card .meta{ display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-top:2px;}
+  select.status-select{
+    background:var(--panel); border:1px solid var(--border); color:var(--text); font-family:inherit;
+    font-size:11.5px; padding:4px 6px; border-radius:6px;
+  }
+
+  .empty{ color:var(--muted); font-size:13px; padding:30px 0; text-align:center; }
+
+  /* ---- Modal ---- */
+  .overlay{ position:fixed; inset:0; background:rgba(5,8,14,.65); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .overlay.show{ display:flex; }
+  .modal{ background:var(--panel); border:1px solid var(--border); border-radius:18px; width:100%; max-width:380px; padding:20px; display:flex; flex-direction:column; gap:12px; max-height:85vh; overflow-y:auto; }
+  .modal h3{ font-size:16px; font-weight:700; }
+  .modal-actions{ display:flex; gap:8px; margin-top:4px; }
+  .modal-actions button{ flex:1; }
+
+  @media (max-width:720px){
+    #app{ flex-direction:column; }
+    .sidebar{ width:100%; height:auto; position:relative; flex-direction:row; align-items:center; overflow-x:auto; }
+    .projects-list{ flex-direction:row; }
+    main{ padding:18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="brand" style="justify-content:center">
+      <div class="brand-mark"></div>
+      <div class="brand-name">Content OS</div>
+    </div>
+    <p class="sub" id="auth-sub">وارد شو تا فضای کاریت رو ببینی</p>
+    <div class="field"><label>ایمیل</label><input id="auth-email" type="email" placeholder="you@example.com"></div>
+    <div class="field"><label>رمز عبور</label><input id="auth-password" type="password" placeholder="••••••••"></div>
+    <div id="auth-error"></div>
+    <button class="btn btn-primary" id="auth-submit" onclick="handleAuthSubmit()">ورود</button>
+    <div class="auth-toggle" onclick="toggleAuthMode()">حساب نداری؟ <b id="auth-toggle-text">ثبت‌نام کن</b></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div><div class="brand-name">Content OS</div><div class="brand-sub" id="org-name">—</div></div>
+    </div>
+    <button class="btn btn-primary" onclick="openProjectModal()">+ پروژه جدید</button>
+    <div class="projects-list" id="projects-list"></div>
+    <div class="sidebar-footer">
+      <span id="user-email">—</span>
+      <span onclick="signOut()">خروج</span>
+    </div>
+  </aside>
+
+  <main>
+    <div id="no-project-view" class="empty">یه پروژه انتخاب کن یا بساز</div>
+
+    <div id="project-view" class="hidden">
+      <div class="topbar">
+        <div><h1 id="p-name">—</h1><p id="p-desc">—</p></div>
+        <button class="add-btn" id="tab-add-btn" onclick="openTabAddModal()">+ افزودن</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" data-tab="productions" onclick="switchTab('productions')">Production ها</div>
+        <div class="tab" data-tab="content" onclick="switchTab('content')">Content Item ها</div>
+        <div class="tab" data-tab="tasks" onclick="switchTab('tasks')">Task ها</div>
+        <div class="tab" data-tab="deliverables" onclick="switchTab('deliverables')">Deliverable ها</div>
+      </div>
+      <div class="grid" id="tab-content"></div>
+    </div>
+  </main>
+</div>
+
+<!-- generic modal -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal-body"></div>
+</div>
+
+<script>
+// =========================================================
+// CONFIG — replace with your Supabase project values
+// =========================================================
+const SUPABASE_URL = 'https://xhtquipezttwacfbtmr.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_pLIne7xvbZW4B6DxzPmr-Q_onpFV1eg';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let session = null;
+let org = null;
+let projects = [];
+let currentProject = null;
+let currentTab = 'productions';
+let productions = [], contentItems = [], tasks = [], deliverables = [];
+let authMode = 'signin';
+
+// ---------- AUTH ----------
+function toggleAuthMode(){
+  authMode = authMode === 'signin' ? 'signup' : 'signin';
+  document.getElementById('auth-sub').textContent = authMode === 'signin' ? 'وارد شو تا فضای کاریت رو ببینی' : 'یه حساب جدید بساز';
+  document.getElementById('auth-submit').textContent = authMode === 'signin' ? 'ورود' : 'ثبت‌نام';
+  document.getElementById('auth-toggle-text').textContent = authMode === 'signin' ? 'ثبت‌نام کن' : 'وارد شو';
+}
+
+async function handleAuthSubmit(){
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'ایمیل و رمز عبور رو وارد کن'; return; }
+
+  const { data, error } = authMode === 'signin'
+    ? await sb.auth.signInWithPassword({ email, password })
+    : await sb.auth.signUp({ email, password });
+
+  if(error){ errEl.textContent = error.message; return; }
+  if(authMode === 'signup' && !data.session){
+    errEl.textContent = 'ایمیلت رو چک کن و لینک تأیید رو بزن، بعد وارد شو.';
+    return;
+  }
+  session = data.session;
+  await bootApp();
+}
+
+async function signOut(){
+  await sb.auth.signOut();
+  location.reload();
+}
+
+// ---------- BOOT ----------
+async function bootApp(){
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('user-email').textContent = session.user.email;
+
+  // ensure profile row exists
+  await sb.from('profiles').upsert({ id: session.user.id, full_name: session.user.email });
+
+  // find org membership
+  const { data: memberships } = await sb.from('org_members').select('org_id, organizations(name)').eq('user_id', session.user.id);
+  if(!memberships || memberships.length === 0){
+    openOrgCreateModal();
+    return;
+  }
+  org = { id: memberships[0].org_id, name: memberships[0].organizations.name };
+  document.getElementById('org-name').textContent = org.name;
+  await loadProjects();
+}
+
+function openOrgCreateModal(){
+  document.getElementById('modal-body').innerHTML = `
+    <h3>فضای کاریت رو بساز</h3>
+    <div class="field"><label>اسم سازمان / کلینیک / برند</label><input id="org-input" placeholder="مثلاً کلینیک عمیق"></div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="createOrg()">بساز و برو</button></div>
+  `;
+  document.getElementById('overlay').classList.add('show');
+}
+
+async function createOrg(){
+  const name = document.getElementById('org-input').value.trim();
+  if(!name) return;
+  const { data: newOrg, error } = await sb.from('organizations').insert({ name, owner_id: session.user.id }).select().single();
+  if(error){ alert(error.message); return; }
+  await sb.from('org_members').insert({ org_id: newOrg.id, user_id: session.user.id, role: 'OWNER' });
+  // seed default destinations
+  const defaults = ['اینستاگرام','یوتیوب','وبسایت','تلگرام','تحویل به مشتری'];
+  await sb.from('destinations').insert(defaults.map(n => ({ org_id: newOrg.id, name: n })));
+  org = { id: newOrg.id, name };
+  document.getElementById('org-name').textContent = org.name;
+  closeModal();
+  await loadProjects();
+}
+
+// ---------- PROJECTS ----------
+async function loadProjects(){
+  const { data } = await sb.from('projects').select('*').eq('org_id', org.id).order('created_at', {ascending:false});
+  projects = data || [];
+  renderProjectsList();
+}
+
+function renderProjectsList(){
+  const el = document.getElementById('projects-list');
+  if(projects.length === 0){ el.innerHTML = `<div class="empty" style="padding:14px 0;font-size:12px;">هنوز پروژه‌ای نیست</div>`; return; }
+  el.innerHTML = projects.map(p => `
+    <div class="proj-item ${currentProject && currentProject.id===p.id ? 'active':''}" onclick="selectProject('${p.id}')">
+      ${p.name}<small>${p.status || 'active'}</small>
+    </div>`).join('');
+}
+
+function openProjectModal(){
+  document.getElementById('modal-body').innerHTML = `
+    <h3>پروژه جدید</h3>
+    <div class="field"><label>اسم پروژه</label><input id="np-name" placeholder="مثلاً افتتاح کلینیک"></div>
+    <div class="field"><label>توضیح کوتاه</label><textarea id="np-desc" placeholder="این پروژه چیه؟"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+      <button class="btn btn-primary" onclick="createProject()">بساز</button>
+    </div>
+  `;
+  document.getElementById('overlay').classList.add('show');
+}
+
+async function createProject(){
+  const name = document.getElementById('np-name').value.trim();
+  const description = document.getElementById('np-desc').value.trim();
+  if(!name) return;
+  const { data, error } = await sb.from('projects').insert({ org_id: org.id, name, description, owner_id: session.user.id }).select().single();
+  if(error){ alert(error.message); return; }
+  closeModal();
+  await loadProjects();
+  selectProject(data.id);
+}
+
+async function selectProject(id){
+  currentProject = projects.find(p => p.id === id);
+  renderProjectsList();
+  document.getElementById('no-project-view').classList.add('hidden');
+  document.getElementById('project-view').classList.remove('hidden');
+  document.getElementById('p-name').textContent = currentProject.name;
+  document.getElementById('p-desc').textContent = currentProject.description || 'بدون توضیح';
+  await loadProductions();
+  switchTab('productions');
+}
+
+// ---------- LOADERS ----------
+async function loadProductions(){
+  const { data } = await sb.from('productions').select('*').eq('project_id', currentProject.id).order('created_at');
+  productions = data || [];
+}
+async function loadContentItems(){
+  if(productions.length === 0){ contentItems = []; return; }
+  const ids = productions.map(p => p.id);
+  const { data } = await sb.from('content_items').select('*').in('production_id', ids).order('created_at');
+  contentItems = data || [];
+}
+async function loadTasks(){
+  if(productions.length === 0){ tasks = []; return; }
+  const ids = productions.map(p => p.id);
+  const { data } = await sb.from('tasks').select('*').in('production_id', ids).order('created_at');
+  tasks = data || [];
+}
+async function loadDeliverables(){
+  if(contentItems.length === 0){ deliverables = []; return; }
+  const ids = contentItems.map(c => c.id);
+  const { data } = await sb.from('deliverables').select('*, destinations(name)').in('content_item_id', ids).order('created_at');
+  deliverables = data || [];
+}
+
+// ---------- TABS ----------
+async function switchTab(tab){
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  const el = document.getElementById('tab-content');
+  el.innerHTML = `<div class="empty">در حال بارگذاری...</div>`;
+
+  if(tab === 'productions'){
+    await loadProductions();
+    renderProductions();
+  } else if(tab === 'content'){
+    await loadContentItems();
+    renderContentItems();
+  } else if(tab === 'tasks'){
+    await loadContentItems(); await loadTasks();
+    renderTasks();
+  } else if(tab === 'deliverables'){
+    await loadContentItems(); await loadDeliverables();
+    renderDeliverables();
+  }
+}
+
+function renderProductions(){
+  const el = document.getElementById('tab-content');
+  if(productions.length === 0){ el.innerHTML = `<div class="empty">هنوز Production‌ای نساختی</div>`; return; }
+  el.innerHTML = productions.map(p => `
+    <div class="item-card">
+      <div class="tag">Production</div>
+      <div class="title">${p.name}</div>
+      <div class="meta">
+        <select class="status-select" onchange="updateStage('${p.id}', this.value)">
+          ${['idea','pre_production','production','editing','review','delivery','release','archive'].map(s => `<option value="${s}" ${p.stage===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+    </div>`).join('');
+}
+async function updateStage(id, stage){
+  await sb.from('productions').update({ stage }).eq('id', id);
+  await loadProductions();
+}
+
+function renderContentItems(){
+  const el = document.getElementById('tab-content');
+  if(contentItems.length === 0){ el.innerHTML = `<div class="empty">اول یه Production بساز، بعد Content Item</div>`; return; }
+  el.innerHTML = contentItems.map(c => `
+    <div class="item-card">
+      <div class="tag">${c.content_type}</div>
+      <div class="title">${c.name}</div>
+      <div class="meta"><span>${c.status}</span><span>${c.deadline || 'بدون موعد'}</span></div>
+    </div>`).join('');
+}
+
+function renderTasks(){
+  const el = document.getElementById('tab-content');
+  if(tasks.length === 0){ el.innerHTML = `<div class="empty">هنوز Task‌ای نیست</div>`; return; }
+  el.innerHTML = tasks.map(t => `
+    <div class="item-card">
+      <div class="tag">Task</div>
+      <div class="title">${t.title}</div>
+      <div class="meta">
+        <select class="status-select" onchange="updateTaskStatus('${t.id}', this.value)">
+          ${['todo','in_progress','review','revision','done'].map(s => `<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
+        </select>
+        <span>${t.deadline || ''}</span>
+      </div>
+    </div>`).join('');
+}
+async function updateTaskStatus(id, status){
+  await sb.from('tasks').update({ status }).eq('id', id);
+  await loadTasks(); renderTasks();
+}
+
+function renderDeliverables(){
+  const el = document.getElementById('tab-content');
+  if(deliverables.length === 0){ el.innerHTML = `<div class="empty">هنوز Deliverable‌ای نیست</div>`; return; }
+  el.innerHTML = deliverables.map(d => `
+    <div class="item-card">
+      <div class="tag">${d.destinations ? d.destinations.name : '—'}</div>
+      <div class="title">${d.name}</div>
+      <div class="meta"><span>${d.status}</span><span>${d.version}</span></div>
+    </div>`).join('');
+}
+
+// ---------- ADD MODALS PER TAB ----------
+function openTabAddModal(){
+  if(currentTab === 'productions') return openAddProduction();
+  if(currentTab === 'content') return openAddContentItem();
+  if(currentTab === 'tasks') return openAddTask();
+  if(currentTab === 'deliverables') return openAddDeliverable();
+}
+
+function openAddProduction(){
+  document.getElementById('modal-body').innerHTML = `
+    <h3>Production جدید</h3>
+    <div class="field"><label>اسم</label><input id="f-name" placeholder="مثلاً Event Coverage"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveProduction()">اضافه کن</button></div>`;
+  document.getElementById('overlay').classList.add('show');
+}
+async function saveProduction(){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name) return;
+  await sb.from('productions').insert({ project_id: currentProject.id, name });
+  closeModal(); await switchTab('productions');
+}
+
+async function openAddContentItem(){
+  if(productions.length === 0){ alert('اول یه Production بساز'); return; }
+  document.getElementById('modal-body').innerHTML = `
+    <h3>Content Item جدید</h3>
+    <div class="field"><label>اسم</label><input id="f-name" placeholder="مثلاً مصاحبه دکتر"></div>
+    <div class="field"><label>Production</label><select id="f-prod">${productions.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+    <div class="field"><label>نوع</label><select id="f-type"><option value="video">ویدیو</option><option value="photo">عکس</option><option value="audio">صوت</option><option value="graphic">گرافیک</option></select></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveContentItem()">اضافه کن</button></div>`;
+  document.getElementById('overlay').classList.add('show');
+}
+async function saveContentItem(){
+  const name = document.getElementById('f-name').value.trim();
+  const production_id = document.getElementById('f-prod').value;
+  const content_type = document.getElementById('f-type').value;
+  if(!name) return;
+  await sb.from('content_items').insert({ name, production_id, content_type });
+  closeModal(); await switchTab('content');
+}
+
+async function openAddTask(){
+  if(productions.length === 0){ alert('اول یه Production بساز'); return; }
+  document.getElementById('modal-body').innerHTML = `
+    <h3>Task جدید</h3>
+    <div class="field"><label>عنوان</label><input id="f-title" placeholder="مثلاً تدوین ویدیو"></div>
+    <div class="field"><label>Production</label><select id="f-prod">${productions.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+    <div class="field"><label>موعد</label><input id="f-deadline" type="date"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveTask()">اضافه کن</button></div>`;
+  document.getElementById('overlay').classList.add('show');
+}
+async function saveTask(){
+  const title = document.getElementById('f-title').value.trim();
+  const production_id = document.getElementById('f-prod').value;
+  const deadline = document.getElementById('f-deadline').value || null;
+  if(!title) return;
+  await sb.from('tasks').insert({ title, production_id, deadline });
+  closeModal(); await switchTab('tasks');
+}
+
+async function openAddDeliverable(){
+  if(contentItems.length === 0){ alert('اول یه Content Item بساز'); return; }
+  const { data: dests } = await sb.from('destinations').select('*').eq('org_id', org.id);
+  document.getElementById('modal-body').innerHTML = `
+    <h3>Deliverable جدید</h3>
+    <div class="field"><label>اسم</label><input id="f-name" placeholder="مثلاً نسخه ریلز"></div>
+    <div class="field"><label>Content Item</label><select id="f-content">${contentItems.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+    <div class="field"><label>مقصد</label><select id="f-dest">${(dests||[]).map(d=>`<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveDeliverable()">اضافه کن</button></div>`;
+  document.getElementById('overlay').classList.add('show');
+}
+async function saveDeliverable(){
+  const name = document.getElementById('f-name').value.trim();
+  const content_item_id = document.getElementById('f-content').value;
+  const destination_id = document.getElementById('f-dest').value;
+  if(!name) return;
+  await sb.from('deliverables').insert({ name, content_item_id, destination_id });
+  closeModal(); await switchTab('deliverables');
+}
+
+function closeModal(){ document.getElementById('overlay').classList.remove('show'); }
+
+// ---------- INIT ----------
+(async function init(){
+  const { data } = await sb.auth.getSession();
+  if(data.session){ session = data.session; await bootApp(); }
+})();
+</script>
+</body>
+</html>
