@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#18181B">
+<title>مدیریت تولید محتوا</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#fff;--panel:#fafafa;--card:#fff;--soft:#f4f4f5;--border:#e4e4e7;
+  --text:#18181b;--muted:#71717a;--subtle:#a1a1aa;--accent:#18181b;
+  --success:#047857;--success-bg:#ecfdf5;--warn:#b45309;--warn-bg:#fffbeb;
+  --danger:#be123c;--danger-bg:#fff1f2;--info:#2563eb;--info-bg:#eff6ff;
+  --radius:16px;--shadow:0 10px 30px rgba(24,24,27,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100%;background:var(--bg)}
+body{font-family:Vazirmatn,sans-serif;color:var(--text);font-size:14px;line-height:1.7}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+button:disabled{opacity:.55;cursor:not-allowed}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:250px;flex:0 0 250px;background:var(--panel);border-left:1px solid var(--border);padding:20px 16px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px}
+.brand-mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#18181b,#3f3f46);position:relative;flex:0 0 34px}
+.brand-mark:before,.brand-mark:after{content:"";position:absolute;background:#fff;border-radius:2px}
+.brand-mark:before{width:14px;height:3px;right:10px;top:10px}
+.brand-mark:after{width:3px;height:14px;right:10px;top:10px}
+.brand-name{font-weight:800;font-size:17px}
+.brand-sub{font-size:11px;color:var(--muted);max-width:165px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-nav{display:flex;flex-direction:column;gap:4px}
+.nav-btn{border:0;background:transparent;text-align:right;padding:9px 10px;border-radius:10px;color:var(--muted);font-weight:600}
+.nav-btn:hover{background:var(--soft);color:var(--text)}
+.nav-btn.active{background:var(--accent);color:#fff}
+.project-head{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);padding:8px 10px 2px}
+.projects-list{overflow:auto;flex:1;display:flex;flex-direction:column;gap:3px}
+.project-item{border:0;background:transparent;text-align:right;padding:9px 10px;border-radius:10px;color:var(--muted);display:flex;flex-direction:column}
+.project-item:hover{background:var(--soft);color:var(--text)}
+.project-item.active{background:#27272a;color:#fff}
+.project-item strong{font-size:13px;font-weight:600}
+.project-item small{font-size:10px;opacity:.75}
+.side-footer{border-top:1px solid var(--border);padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.user-email{font-size:10.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout{border:0;background:transparent;color:var(--muted);font-size:11px;text-decoration:underline}
+main{flex:1;min-width:0;padding:26px 34px}
+.page{max-width:1400px;margin:auto}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.title-wrap h1{font-size:23px;font-weight:800;line-height:1.35}
+.title-wrap p{font-size:12.5px;color:var(--muted);margin-top:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--border);background:#fff;color:var(--text);padding:9px 13px;border-radius:10px;font-weight:700;font-size:12.5px}
+.btn:hover{background:var(--soft)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn-primary:hover{background:#27272a}
+.btn-danger{color:var(--danger);border-color:#fecdd3;background:#fff}
+.btn-ghost{background:transparent}
+.icon-btn{width:34px;height:34px;border:1px solid var(--border);border-radius:9px;background:#fff}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px}
+.stat .label{font-size:10.5px;color:var(--muted);font-weight:700}
+.stat .value{font-size:23px;font-weight:900;margin-top:2px}
+.stat .hint{font-size:10px;color:var(--subtle)}
+.section{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.section-head h2{font-size:14px;font-weight:800}
+.tabs{display:flex;gap:4px;overflow:auto;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{border:0;background:transparent;color:var(--muted);padding:9px 13px;white-space:nowrap;border-bottom:2px solid transparent;font-weight:700;font-size:12.5px}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:13px}
+.search{flex:1;min-width:180px}
+.search input,.toolbar select{width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:10px;background:#fff;color:var(--text);outline:none}
+.search input:focus,.field input:focus,.field select:focus,.field textarea:focus{border-color:#a1a1aa;box-shadow:0 0 0 3px rgba(24,24,27,.06)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.card{border:1px solid var(--border);border-radius:14px;padding:13px;background:#fff;min-width:0}
+.card:hover{box-shadow:0 5px 18px rgba(24,24,27,.05)}
+.card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.card-title{font-size:13.5px;font-weight:800}
+.card-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.card-desc{font-size:11.5px;color:var(--muted);margin-top:9px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card-meta{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.badge{display:inline-flex;align-items:center;padding:3px 7px;border-radius:999px;background:var(--soft);color:var(--muted);font-size:10px;font-weight:700}
+.badge.success{background:var(--success-bg);color:var(--success)}
+.badge.warn{background:var(--warn-bg);color:var(--warn)}
+.badge.danger{background:var(--danger-bg);color:var(--danger)}
+.badge.info{background:var(--info-bg);color:var(--info)}
+.card-actions{display:flex;gap:5px;margin-top:12px}
+.card-actions .btn{padding:6px 8px;font-size:10.5px}
+.empty{padding:35px 12px;text-align:center;color:var(--muted);font-size:12.5px;border:1px dashed var(--border);border-radius:13px}
+.brief-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.brief-item{background:var(--soft);border-radius:12px;padding:11px}
+.brief-item.full{grid-column:1/-1}
+.brief-label{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px}
+.brief-value{font-size:12px;white-space:pre-wrap}
+.agenda{display:flex;flex-direction:column;gap:7px}
+.agenda-row{display:grid;grid-template-columns:105px 90px 1fr auto;gap:10px;align-items:center;border:1px solid var(--border);border-radius:11px;padding:9px 11px}
+.agenda-date{font-size:11px;font-weight:700}
+.agenda-kind{font-size:10px;color:var(--muted)}
+.agenda-name{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.agenda-status{font-size:10px}
+.overdue{color:var(--danger)}
+.today{color:var(--warn)}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.field{min-width:0}
+.field.full{grid-column:1/-1}
+.field label{display:block;font-size:11px;color:var(--muted);font-weight:700;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:9px;padding:9px 10px;outline:none}
+.field textarea{min-height:90px;resize:vertical}
+.field small{display:block;color:var(--subtle);font-size:9.5px;margin-top:3px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(9,9,11,.55);display:none;align-items:center;justify-content:center;padding:15px;z-index:100}
+.modal-backdrop.show{display:flex}
+.modal{background:#fff;border-radius:18px;width:min(680px,100%);max-height:90vh;overflow:auto;padding:19px;box-shadow:0 30px 80px rgba(0,0,0,.2)}
+.modal.small{width:min(430px,100%)}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.modal-head h3{font-size:16px;font-weight:800}
+.modal-close{border:0;background:var(--soft);border-radius:8px;width:31px;height:31px}
+.modal-actions{display:flex;justify-content:flex-start;gap:7px;margin-top:15px}
+.toast{position:fixed;left:18px;bottom:18px;z-index:200;background:#18181b;color:#fff;padding:10px 13px;border-radius:10px;font-size:11.5px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);pointer-events:none;transition:.2s}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:#9f1239}
+.toast.success{background:#065f46}
+.loading{padding:30px;text-align:center;color:var(--muted)}
+#auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:18px;background:#fff}
+.auth-box{width:min(370px,100%);background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:25px}
+.auth-box .brand{justify-content:center;margin-bottom:12px}
+.auth-box h1{text-align:center;font-size:18px;margin-bottom:3px}
+.auth-box .sub{text-align:center;color:var(--muted);font-size:11.5px;margin-bottom:17px}
+.auth-actions{margin-top:10px}
+.auth-toggle{text-align:center;color:var(--muted);font-size:11px;margin-top:11px;cursor:pointer}
+.auth-toggle b{color:var(--text)}
+.auth-error{min-height:18px;color:var(--danger);font-size:11px;text-align:center;margin-top:8px}
+.mobile-nav{display:none}
+@media(max-width:1000px){
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:760px){
+  .app-shell{display:block}
+  .sidebar{display:none}
+  main{padding:17px 13px 80px}
+  .topbar{align-items:stretch;flex-direction:column}
+  .actions{width:100%}
+  .actions .btn{flex:1}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .brief-grid,.form-grid{grid-template-columns:1fr}
+  .brief-item.full,.field.full{grid-column:auto}
+  .agenda-row{grid-template-columns:80px 65px 1fr}
+  .agenda-status{display:none}
+  .mobile-nav{position:fixed;bottom:0;right:0;left:0;display:flex;background:#fff;border-top:1px solid var(--border);z-index:80;padding:7px 6px env(safe-area-inset-bottom)}
+  .mobile-nav button{flex:1;border:0;background:transparent;color:var(--muted);font-size:9.5px;padding:4px}
+  .mobile-nav button.active{color:var(--text);font-weight:800}
+}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-box">
+    <div class="brand"><div class="brand-mark"></div><div><div class="brand-name">مدیریت تولید محتوا</div><div class="brand-sub">سیستم مدیریت تولید محتوا</div></div></div>
+    <h1 id="auth-title">ورود به مدیریت تولید محتوا</h1>
+    <div class="sub" id="auth-sub">فضای کاری خودت رو مدیریت کن</div>
+    <div class="field"><label>ایمیل</label><input id="auth-email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+    <div class="field" style="margin-top:9px"><label>رمز عبور</label><input id="auth-password" type="password" autocomplete="current-password" placeholder="حداقل ۶ کاراکتر"></div>
+    <div class="auth-error" id="auth-error"></div>
+    <div class="auth-actions"><button class="btn btn-primary" id="auth-submit" style="width:100%" onclick="handleAuth()">ورود</button></div>
+    <div class="auth-toggle" onclick="toggleAuth()">حساب نداری؟ <b id="auth-toggle">ثبت‌نام</b></div>
+  </div>
+</div>
+
+<div id="app" class="app-shell hidden">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark"></div><div><div class="brand-name">مدیریت تولید محتوا</div><div class="brand-sub" id="org-name">—</div></div></div>
+    <button class="btn btn-primary" onclick="openProjectModal()">+ پروژه جدید</button>
+    <div class="side-nav">
+      <button class="nav-btn active" data-view="dashboard" onclick="goView('dashboard')">نمای کلی</button>
+      <button class="nav-btn" data-view="brief" onclick="goView('brief')">بریف پروژه</button>
+      <button class="nav-btn" data-view="timeline" onclick="goView('timeline')">برنامه و موعدها</button>
+      <button class="nav-btn" data-view="team" onclick="goView('team')">تیم</button>
+    </div>
+    <div class="project-head"><span>پروژه‌ها</span><button class="icon-btn" style="width:27px;height:27px" onclick="openProjectModal()">+</button></div>
+    <div class="projects-list" id="projects-list"></div>
+    <div class="side-footer"><span class="user-email" id="user-email">—</span><button class="logout" onclick="signOut()">خروج</button></div>
+  </aside>
+
+  <main>
+    <div class="page">
+      <div id="no-project-view" class="empty">اول یک پروژه انتخاب کن یا پروژه جدید بساز.</div>
+      <div id="project-view" class="hidden">
+        <div class="topbar">
+          <div class="title-wrap"><h1 id="p-name">—</h1><p id="p-desc">—</p></div>
+          <div class="actions">
+            <button class="btn" onclick="openProjectEdit()">ویرایش پروژه</button>
+            <button class="btn btn-primary" onclick="openQuickAdd()">+ افزودن</button>
+          </div>
+        </div>
+        <div class="stats" id="stats"></div>
+
+        <div id="dashboard-view">
+          <div class="tabs" id="tabs">
+            <button class="tab active" data-tab="productions" onclick="switchTab('productions')">تولیدها</button>
+            <button class="tab" data-tab="content" onclick="switchTab('content')">محتوا</button>
+            <button class="tab" data-tab="tasks" onclick="switchTab('tasks')">کارها</button>
+            <button class="tab" data-tab="deliverables" onclick="switchTab('deliverables')">خروجی‌ها</button>
+          </div>
+          <div id="tab-content"></div>
+        </div>
+
+        <div id="brief-view" class="hidden"></div>
+        <div id="timeline-view" class="hidden"></div>
+        <div id="team-view" class="hidden"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="mobile-nav">
+  <button data-view="dashboard" class="active" onclick="goView('dashboard')">نمای کلی</button>
+  <button data-view="brief" onclick="goView('brief')">بریف</button>
+  <button data-view="timeline" onclick="goView('timeline')">برنامه</button>
+  <button data-view="team" onclick="goView('team')">تیم</button>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop" onclick="backdropClose(event)">
+  <div class="modal" id="modal"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   مدیریت تولید محتوا — upgraded frontend
+   Schema-compatible with the supplied Phase 1 Supabase schema.
+   ========================================================= */
+const SUPABASE_URL='https://xhtquipeztttwacfbtmr.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_pLIne7xvbZW4B6DxzPmr-Q_onpFV1eg';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+
+let session=null,org=null,projects=[],currentProject=null;
+let productions=[],contentItems=[],tasks=[],deliverables=[],members=[],destinations=[];
+let currentTab='productions',currentView='dashboard',authMode='signin',toastTimer=null;
+
+const STAGES={
+ idea:'ایده',pre_production:'پیش‌تولید',production:'در حال تولید',editing:'تدوین',
+ review:'بازبینی',delivery:'تحویل',release:'انتشار',archive:'آرشیو'
+};
+const CONTENT_STATUS={
+ idea:'ایده',planned:'برنامه‌ریزی‌شده',in_production:'در حال تولید',editing:'تدوین',
+ review:'بازبینی',revision:'نیاز به اصلاح',approved:'تأییدشده',published:'منتشرشده',archived:'آرشیو'
+};
+const TASK_STATUS={todo:'انجام‌نشده',in_progress:'در حال انجام',review:'بازبینی',revision:'نیاز به اصلاح',done:'انجام‌شده'};
+const TYPES={video:'ویدیو',photo:'عکس',audio:'صوت',graphic:'گرافیک'};
+const PRIORITIES={low:'کم',normal:'عادی',high:'زیاد',urgent:'فوری'};
+const DEL_STATUS={pending:'در صف',in_progress:'در حال انجام',review:'بازبینی',approved:'تأییدشده',delivered:'تحویل‌شده'};
+const PROJECT_STATUS={active:'فعال',on_hold:'متوقف',completed:'تمام‌شده',archived:'آرشیو'};
+const TYPE_OPTIONS=Object.entries(TYPES).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+const PRIORITY_OPTIONS=Object.entries(PRIORITIES).map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+
+function $(id){return document.getElementById(id)}
+function esc(v=''){
+  return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function toast(msg,type='success'){
+  const el=$('toast');el.textContent=msg;el.className=`toast show ${type}`;
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className='toast',2600);
+}
+function errorToast(err,fallback='خطایی رخ داد'){
+  console.error(err);toast(err?.message||fallback,'error');
+}
+function openModal(html,small=false){
+  $('modal').className='modal'+(small?' small':'');
+  $('modal').innerHTML=html;$('modal-backdrop').classList.add('show');
+}
+function closeModal(){$('modal-backdrop').classList.remove('show')}
+function backdropClose(e){if(e.target.id==='modal-backdrop')closeModal()}
+function modalHead(title){return `<div class="modal-head"><h3>${esc(title)}</h3><button class="modal-close" onclick="closeModal()">×</button></div>`}
+function setLoading(el,msg='در حال بارگذاری...'){el.innerHTML=`<div class="loading">${esc(msg)}</div>`}
+
+function fmtDate(date){
+  if(!date)return 'بدون موعد';
+  const d=new Date(date+'T00:00:00');
+  if(Number.isNaN(d.getTime()))return date;
+  return new Intl.DateTimeFormat('fa-IR',{year:'numeric',month:'short',day:'numeric'}).format(d);
+}
+function isoToday(){return new Date().toISOString().slice(0,10)}
+function dateState(date){
+  if(!date)return '';
+  const t=isoToday();
+  if(date<t)return 'overdue';
+  if(date===t)return 'today';
+  return '';
+}
+function dateBadge(date){
+  const cls=dateState(date);
+  return `<span class="badge ${cls==='overdue'?'danger':cls==='today'?'warn':''}">${fmtDate(date)}</span>`;
+}
+function priorityBadge(p){return `<span class="badge ${p==='urgent'?'danger':p==='high'?'warn':''}">${esc(PRIORITIES[p]||p||'عادی')}</span>`}
+function memberName(id){
+  const m=members.find(x=>x.user_id===id);
+  return m?.profiles?.full_name||m?.user_id?.slice(0,8)||'بدون مسئول';
+}
+function productionName(id){return productions.find(p=>p.id===id)?.name||'—'}
+function contentName(id){return contentItems.find(c=>c.id===id)?.name||'—'}
+
+function toggleAuth(){
+  authMode=authMode==='signin'?'signup':'signin';
+  $('auth-title').textContent=authMode==='signin'?'ورود به مدیریت تولید محتوا':'ساخت حساب مدیریت تولید محتوا';
+  $('auth-sub').textContent=authMode==='signin'?'فضای کاری خودت رو مدیریت کن':'حساب مدیر یا عضو تیم بساز';
+  $('auth-submit').textContent=authMode==='signin'?'ورود':'ثبت‌نام';
+  $('auth-toggle').textContent=authMode==='signin'?'ثبت‌نام':'ورود';
+  $('auth-error').textContent='';
+}
+async function handleAuth(){
+  const email=$('auth-email').value.trim(),password=$('auth-password').value;
+  $('auth-error').textContent='';
+  if(!email||!password){$('auth-error').textContent='ایمیل و رمز عبور را وارد کن.';return}
+  if(password.length<6){$('auth-error').textContent='رمز عبور باید حداقل ۶ کاراکتر باشد.';return}
+  $('auth-submit').disabled=true;
+  try{
+    const r=authMode==='signin'
+      ? await sb.auth.signInWithPassword({email,password})
+      : await sb.auth.signUp({email,password});
+    if(r.error)throw r.error;
+    if(authMode==='signup'&&!r.data.session){
+      $('auth-error').textContent='ایمیل را تأیید کن و سپس وارد شو.';
+      return;
+    }
+    session=r.data.session;await bootApp();
+  }catch(e){$('auth-error').textContent=e.message||'ورود ناموفق بود.'}
+  finally{$('auth-submit').disabled=false}
+}
+async function signOut(){
+  await sb.auth.signOut();session=null;org=null;currentProject=null;
+  $('app').classList.add('hidden');$('auth-screen').classList.remove('hidden');
+}
+
+async function bootApp(){
+  if(!session)return;
+  $('auth-screen').classList.add('hidden');$('app').classList.remove('hidden');
+  $('user-email').textContent=session.user.email||'کاربر';
+  try{
+    const p=await sb.from('profiles').upsert({id:session.user.id,full_name:session.user.email},{onConflict:'id'});
+    if(p.error)console.warn('profile',p.error);
+    const {data:ms,error}=await sb.from('org_members')
+      .select('org_id,role,organizations(id,name,owner_id)').eq('user_id',session.user.id);
+    if(error)throw error;
+    if(!ms?.length){openOrgCreateModal();return}
+    const first=ms[0];
+    org={id:first.org_id,name:first.organizations?.name||'فضای کاری',owner_id:first.organizations?.owner_id};
+    $('org-name').textContent=org.name;
+    await refreshAll();
+  }catch(e){errorToast(e,'بارگذاری فضای کاری ناموفق بود')}
+}
+
+function openOrgCreateModal(){
+  openModal(`${modalHead('ساخت فضای کاری')}
+    <div class="field"><label>نام سازمان / برند / تیم</label><input id="org-input" placeholder="مثلاً کلینیک عمیق"></div>
+    <div class="modal-actions"><button class="btn btn-primary" onclick="createOrg()">ساخت فضای کاری</button></div>`,true);
+}
+async function createOrg(){
+  const name=$('org-input').value.trim();
+  if(!name){toast('نام فضای کاری را وارد کن.','error');return}
+  try{
+    const {data,error}=await sb.rpc('create_organization_with_owner',{org_name:name});
+    if(error)throw error;
+    org={id:data.id,name:data.name||name,owner_id:session.user.id};
+    $('org-name').textContent=org.name;closeModal();await refreshAll();
+  }catch(e){errorToast(e,'ساخت فضای کاری انجام نشد')}
+}
+
+async function refreshAll(){
+  await Promise.all([loadProjects(),loadMembers(),loadDestinations()]);
+  if(projects.length){
+    const keep=currentProject?.id;
+    await selectProject(keep&&projects.some(p=>p.id===keep)?keep:projects[0].id,false);
+  }else{
+    currentProject=null;showNoProject();
+  }
+}
+async function loadProjects(){
+  const {data,error}=await sb.from('projects').select('*').eq('org_id',org.id).order('created_at',{ascending:false});
+  if(error)throw error;projects=data||[];renderProjects();
+}
+async function loadMembers(){
+  const {data,error}=await sb.from('org_members').select('user_id,role,profiles(full_name)').eq('org_id',org.id);
+  if(error){console.warn(error);members=[];return} members=data||[];
+}
+async function loadDestinations(){
+  const {data,error}=await sb.from('destinations').select('*').eq('org_id',org.id).order('name');
+  if(error){console.warn(error);destinations=[];return} destinations=data||[];
+}
+function renderProjects(){
+  const el=$('projects-list');
+  if(!projects.length){el.innerHTML='<div class="empty" style="border:0;padding:18px 5px">هنوز پروژه‌ای نیست.</div>';return}
+  el.innerHTML=projects.map(p=>`<button class="project-item ${currentProject?.id===p.id?'active':''}" onclick="selectProject('${p.id}')">
+    <strong>${esc(p.name)}</strong><small>${esc(PROJECT_STATUS[p.status]||p.status||'فعال')}</small>
+  </button>`).join('');
+}
+function showNoProject(){
+  $('project-view').classList.add('hidden');$('no-project-view').classList.remove('hidden');
+}
+async function selectProject(id,load=true){
+  currentProject=projects.find(p=>p.id===id)||null;
+  renderProjects();
+  if(!currentProject){showNoProject();return}
+  $('no-project-view').classList.add('hidden');$('project-view').classList.remove('hidden');
+  $('p-name').textContent=currentProject.name;
+  $('p-desc').textContent=currentProject.description||'بدون توضیح کوتاه';
+  if(load)await loadProjectData();
+  renderStats();goView(currentView);
+}
+async function loadProjectData(){
+  try{
+    const p=await sb.from('productions').select('*').eq('project_id',currentProject.id).order('created_at');
+    if(p.error)throw p.error;productions=p.data||[];
+    const ids=productions.map(x=>x.id);
+    if(!ids.length){contentItems=[];tasks=[];deliverables=[];return}
+    const [c,t]=await Promise.all([
+      sb.from('content_items').select('*').in('production_id',ids).order('created_at'),
+      sb.from('tasks').select('*').in('production_id',ids).order('created_at')
+    ]);
+    if(c.error)throw c.error;if(t.error)throw t.error;
+    contentItems=c.data||[];tasks=t.data||[];
+    const cids=contentItems.map(x=>x.id);
+    if(cids.length){
+      const d=await sb.from('deliverables').select('*,destinations(id,name)').in('content_item_id',cids).order('created_at');
+      if(d.error)throw d.error;deliverables=d.data||[];
+    }else deliverables=[];
+  }catch(e){errorToast(e,'اطلاعات پروژه بارگذاری نشد')}
+}
+
+function renderStats(){
+  const open=tasks.filter(t=>t.status!=='done').length;
+  const overdue=[...tasks,...contentItems,...deliverables].filter(x=>x.deadline&&x.deadline<isoToday()&&x.status!=='done'&&x.status!=='delivered'&&x.status!=='published').length;
+  const stats=[
+    ['تولیدها',productions.length,''],
+    ['آیتم محتوا',contentItems.length,''],
+    ['کارهای باز',open,overdue?`${overdue} مورد عقب‌افتاده`: 'بدون عقب‌افتادگی'],
+    ['خروجی‌ها',deliverables.length,''],
+    ['انتشارهای نزدیک',deliverables.filter(d=>d.release_date&&d.release_date>=isoToday()).length,'بر اساس تاریخ انتشار']
+  ];
+  $('stats').innerHTML=stats.map(s=>`<div class="stat"><div class="label">${s[0]}</div><div class="value">${s[1]}</div><div class="hint">${s[2]}</div></div>`).join('');
+}
+
+function goView(view){
+  if(!currentProject)return;
+  currentView=view;
+  document.querySelectorAll('.nav-btn,.mobile-nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  ['dashboard','brief','timeline','team'].forEach(v=>$(`${v}-view`).classList.toggle('hidden',v!==view));
+  if(view==='dashboard')switchTab(currentTab);
+  if(view==='brief')renderBrief();
+  if(view==='timeline')renderTimeline();
+  if(view==='team')renderTeam();
+}
+
+async function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  const el=$('tab-content');setLoading(el);
+  if(tab==='productions')renderProductions();
+  if(tab==='content')renderContentItems();
+  if(tab==='tasks')renderTasks();
+  if(tab==='deliverables')renderDeliverables();
+}
+
+function toolbar(searchId,placeholder,selectHtml=''){
+  return `<div class="toolbar"><div class="search"><input id="${searchId}" oninput="filterCurrent()" placeholder="${placeholder}"></div>${selectHtml}</div>`;
+}
+function renderProductions(){
+  const el=$('tab-content');
+  el.innerHTML=toolbar('list-search','جست‌وجوی تولید...')+`<div id="list-results" class="cards"></div>`;
+  drawProductions();
+}
+function drawProductions(){
+  const q=($('list-search')?.value||'').toLowerCase();
+  const list=productions.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.notes||'').toLowerCase().includes(q));
+  $('list-results').innerHTML=list.length?list.map(p=>`
+    <div class="card">
+      <div class="card-top"><div><div class="card-title">${esc(p.name)}</div><div class="card-sub">${esc(STAGES[p.stage]||p.stage||'ایده')}</div></div><span class="badge">${esc(STAGES[p.stage]||p.stage||'ایده')}</span></div>
+      ${p.notes?`<div class="card-desc">${esc(p.notes)}</div>`:''}
+      <div class="card-actions"><button class="btn" onclick="openProductionEdit('${p.id}')">ویرایش</button><button class="btn" onclick="openProductionDetail('${p.id}')">جزئیات</button></div>
+    </div>`).join(''):'<div class="empty">تولیدی با این مشخصات پیدا نشد.</div>';
+}
+function renderContentItems(){
+  const el=$('tab-content');
+  el.innerHTML=toolbar('list-search','جست‌وجوی محتوا...',`<select id="status-filter" onchange="filterCurrent()"><option value="">همه وضعیت‌ها</option>${Object.entries(CONTENT_STATUS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`);
+  el.innerHTML+=`<div id="list-results" class="cards"></div>`;drawContent();
+}
+function drawContent(){
+  const q=($('list-search')?.value||'').toLowerCase(),st=$('status-filter')?.value||'';
+  const list=contentItems.filter(c=>(!st||c.status===st)&&((c.name||'').toLowerCase().includes(q)||(c.description||'').toLowerCase().includes(q)));
+  $('list-results').innerHTML=list.length?list.map(c=>`
+    <div class="card">
+      <div class="card-top"><div><div class="card-title">${esc(c.name)}</div><div class="card-sub">${esc(productionName(c.production_id))}</div></div><span class="badge">${esc(CONTENT_STATUS[c.status]||c.status||'ایده')}</span></div>
+      ${c.description?`<div class="card-desc">${esc(c.description)}</div>`:''}
+      <div class="card-meta">${priorityBadge(c.priority)}<span class="badge">${esc(TYPES[c.content_type]||c.content_type||'ویدیو')}</span>${dateBadge(c.deadline)}</div>
+      <div class="card-actions"><button class="btn" onclick="openContentEdit('${c.id}')">ویرایش</button><button class="btn" onclick="openContentDetail('${c.id}')">جزئیات</button></div>
+    </div>`).join(''):'<div class="empty">آیتم محتوایی پیدا نشد.</div>';
+}
+function renderTasks(){
+  const el=$('tab-content');
+  el.innerHTML=toolbar('list-search','جست‌وجوی کار...',`<select id="status-filter" onchange="filterCurrent()"><option value="">همه وضعیت‌ها</option>${Object.entries(TASK_STATUS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`);
+  el.innerHTML+=`<div id="list-results" class="cards"></div>`;drawTasks();
+}
+function drawTasks(){
+  const q=($('list-search')?.value||'').toLowerCase(),st=$('status-filter')?.value||'';
+  const list=tasks.filter(t=>(!st||t.status===st)&&((t.title||'').toLowerCase().includes(q)||(t.description||'').toLowerCase().includes(q)));
+  $('list-results').innerHTML=list.length?list.map(t=>`
+    <div class="card">
+      <div class="card-top"><div><div class="card-title">${esc(t.title)}</div><div class="card-sub">${esc(productionName(t.production_id))}</div></div><span class="badge">${esc(TASK_STATUS[t.status]||t.status)}</span></div>
+      ${t.description?`<div class="card-desc">${esc(t.description)}</div>`:''}
+      <div class="card-meta">${priorityBadge(t.priority)}<span class="badge">${esc(memberName(t.assignee_id))}</span>${dateBadge(t.deadline)}</div>
+      <div class="card-actions"><button class="btn" onclick="quickTaskStatus('${t.id}')">تغییر وضعیت</button><button class="btn" onclick="openTaskEdit('${t.id}')">ویرایش</button></div>
+    </div>`).join(''):'<div class="empty">کاری پیدا نشد.</div>';
+}
+function renderDeliverables(){
+  const el=$('tab-content');
+  el.innerHTML=toolbar('list-search','جست‌وجوی خروجی...',`<select id="status-filter" onchange="filterCurrent()"><option value="">همه وضعیت‌ها</option>${Object.entries(DEL_STATUS).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select>`);
+  el.innerHTML+=`<div id="list-results" class="cards"></div>`;drawDeliverables();
+}
+function drawDeliverables(){
+  const q=($('list-search')?.value||'').toLowerCase(),st=$('status-filter')?.value||'';
+  const list=deliverables.filter(d=>(!st||d.status===st)&&((d.name||'').toLowerCase().includes(q)||(d.format||'').toLowerCase().includes(q)));
+  $('list-results').innerHTML=list.length?list.map(d=>`
+    <div class="card">
+      <div class="card-top"><div><div class="card-title">${esc(d.name)}</div><div class="card-sub">${esc(contentName(d.content_item_id))}</div></div><span class="badge">${esc(DEL_STATUS[d.status]||d.status)}</span></div>
+      <div class="card-meta"><span class="badge">${esc(d.destinations?.name||'بدون مقصد')}</span><span class="badge">${esc(d.version||'V01')}</span><span class="badge">${esc(d.format||'فرمت نامشخص')}</span></div>
+      <div class="card-meta">${dateBadge(d.deadline)}<span class="badge">${d.release_date?'انتشار: '+fmtDate(d.release_date):'بدون تاریخ انتشار'}</span></div>
+      <div class="card-actions"><button class="btn" onclick="openDeliverableEdit('${d.id}')">ویرایش</button></div>
+    </div>`).join(''):'<div class="empty">خروجی پیدا نشد.</div>';
+}
+function filterCurrent(){
+  if(currentTab==='productions')drawProductions();
+  if(currentTab==='content')drawContent();
+  if(currentTab==='tasks')drawTasks();
+  if(currentTab==='deliverables')drawDeliverables();
+}
+
+/* ---------- project ---------- */
+function projectForm(p={}){
+  return `<div class="form-grid">
+    <div class="field"><label>نام پروژه *</label><input id="f-name" value="${esc(p.name||'')}" placeholder="مثلاً افتتاح کلینیک"></div>
+    <div class="field"><label>نوع پروژه</label><input id="f-type" value="${esc(p.project_type||'')}" placeholder="مثلاً کمپین، رویداد، برندینگ"></div>
+    <div class="field"><label>مشتری / برند</label><input id="f-client" value="${esc(p.client||'')}"></div>
+    <div class="field"><label>اولویت</label><select id="f-priority">${PRIORITY_OPTIONS.replace(`value="${p.priority||'normal'}"`,`value="${p.priority||'normal'}" selected`)}</select></div>
+    <div class="field"><label>وضعیت پروژه</label><select id="f-status">${Object.entries(PROJECT_STATUS).map(([v,l])=>`<option value="${v}" ${p.status===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>شروع</label><input id="f-start" type="date" value="${p.start_date||''}"></div>
+    <div class="field"><label>پایان</label><input id="f-end" type="date" value="${p.end_date||''}"></div>
+    <div class="field full"><label>توضیح کوتاه</label><textarea id="f-desc" placeholder="پروژه دقیقاً چیست؟">${esc(p.description||'')}</textarea></div>
+    <div class="field full"><label>دیدگاه / Vision</label><textarea id="f-vision" placeholder="این پروژه قرار است چه تصویری بسازد؟">${esc(p.vision||'')}</textarea></div>
+    <div class="field"><label>مخاطب هدف</label><textarea id="f-audience" placeholder="چه کسی؟">${esc(p.target_audience||'')}</textarea></div>
+    <div class="field"><label>پیام اصلی</label><textarea id="f-message" placeholder="مخاطب باید چه چیزی دریافت کند؟">${esc(p.main_message||'')}</textarea></div>
+    <div class="field full"><label>لحن و سبک</label><textarea id="f-tone" placeholder="مثلاً مینیمال، حرفه‌ای، سینمایی، صمیمی...">${esc(p.tone_style||'')}</textarea></div>
+  </div>`;
+}
+function openProjectModal(){
+  openModal(`${modalHead('پروژه جدید')}${projectForm()}
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveProject()">ساخت پروژه</button></div>`);
+}
+function readProjectForm(){
+  const start=$('f-start').value||null,end=$('f-end').value||null;
+  if(start&&end&&end<start)throw new Error('تاریخ پایان نمی‌تواند قبل از تاریخ شروع باشد.');
+  return {
+    name:$('f-name').value.trim(),project_type:$('f-type').value.trim()||null,client:$('f-client').value.trim()||null,
+    priority:$('f-priority').value,status:$('f-status').value,start_date:start,end_date:end,
+    description:$('f-desc').value.trim()||null,vision:$('f-vision').value.trim()||null,
+    target_audience:$('f-audience').value.trim()||null,main_message:$('f-message').value.trim()||null,
+    tone_style:$('f-tone').value.trim()||null
+  };
+}
+async function saveProject(){
+  try{
+    const v=readProjectForm();if(!v.name)throw new Error('نام پروژه الزامی است.');
+    const {data,error}=await sb.from('projects').insert({...v,org_id:org.id,owner_id:session.user.id}).select().single();
+    if(error)throw error;closeModal();await loadProjects();await selectProject(data.id);toast('پروژه ساخته شد.');
+  }catch(e){errorToast(e)}
+}
+function openProjectEdit(){
+  openModal(`${modalHead('ویرایش پروژه')}${projectForm(currentProject)}
+    <div class="modal-actions"><button class="btn btn-danger" onclick="archiveProject()">آرشیو پروژه</button><button class="btn btn-ghost" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="updateProject()">ذخیره تغییرات</button></div>`);
+}
+async function updateProject(){
+  try{
+    const v=readProjectForm();if(!v.name)throw new Error('نام پروژه الزامی است.');
+    const {error}=await sb.from('projects').update(v).eq('id',currentProject.id);
+    if(error)throw error;closeModal();await loadProjects();currentProject={...currentProject,...v};$('p-name').textContent=v.name;$('p-desc').textContent=v.description||'بدون توضیح کوتاه';renderProjects();renderBrief();toast('تغییرات پروژه ذخیره شد.');
+  }catch(e){errorToast(e)}
+}
+async function archiveProject(){
+  if(!confirm('پروژه آرشیو شود؟ اطلاعات حذف نمی‌شود.'))return;
+  const {error}=await sb.from('projects').update({status:'archived'}).eq('id',currentProject.id);
+  if(error){errorToast(error);return}
+  closeModal();await loadProjects();currentProject={...currentProject,status:'archived'};renderProjects();toast('پروژه آرشیو شد.');
+}
+
+/* ---------- brief / timeline / team ---------- */
+function renderBrief(){
+  const p=currentProject;
+  $('brief-view').innerHTML=`<div class="section"><div class="section-head"><h2>بریف و منطق پروژه</h2><button class="btn" onclick="openProjectEdit()">ویرایش بریف</button></div>
+  <div class="brief-grid">
+    ${brief('نوع پروژه',p.project_type||'تعریف نشده')}${brief('مشتری / برند',p.client||'تعریف نشده')}
+    ${brief('وضعیت',PROJECT_STATUS[p.status]||p.status||'فعال')}${brief('اولویت',PRIORITIES[p.priority]||p.priority||'عادی')}
+    ${brief('بازه پروژه',p.start_date||p.end_date?`${fmtDate(p.start_date)} تا ${fmtDate(p.end_date)}`:'تعریف نشده')}
+    ${brief('پیام اصلی',p.main_message||'هنوز تعریف نشده')}
+    ${brief('دیدگاه',p.vision||'هنوز تعریف نشده','full')}
+    ${brief('مخاطب هدف',p.target_audience||'هنوز تعریف نشده')}
+    ${brief('لحن و سبک',p.tone_style||'هنوز تعریف نشده')}
+    ${brief('توضیح پروژه',p.description||'هنوز تعریف نشده','full')}
+  </div></div>`;
+}
+function brief(label,value,cls=''){return `<div class="brief-item ${cls}"><div class="brief-label">${label}</div><div class="brief-value">${esc(value)}</div></div>`}
+function renderTimeline(){
+  const rows=[
+    ...tasks.filter(x=>x.deadline).map(x=>({date:x.deadline,kind:'کار',name:x.title,status:TASK_STATUS[x.status]||x.status})),
+    ...contentItems.filter(x=>x.deadline).map(x=>({date:x.deadline,kind:'محتوا',name:x.name,status:CONTENT_STATUS[x.status]||x.status})),
+    ...deliverables.filter(x=>x.deadline).map(x=>({date:x.deadline,kind:'خروجی',name:x.name,status:DEL_STATUS[x.status]||x.status})),
+    ...deliverables.filter(x=>x.release_date).map(x=>({date:x.release_date,kind:'انتشار',name:x.name,status:'تاریخ انتشار'}))
+  ].sort((a,b)=>a.date.localeCompare(b.date));
+  $('timeline-view').innerHTML=`<div class="section"><div class="section-head"><h2>برنامه اجرایی پروژه</h2><button class="btn" onclick="openQuickAdd()">+ افزودن مورد</button></div>
+  <div class="card-sub" style="margin-bottom:12px">این برنامه بر اساس موعدهای ثبت‌شده در کارها، محتواها، خروجی‌ها و تاریخ انتشار ساخته می‌شود.</div>
+  ${rows.length?`<div class="agenda">${rows.map(r=>`<div class="agenda-row"><div class="agenda-date ${dateState(r.date)}">${fmtDate(r.date)}</div><div class="agenda-kind">${r.kind}</div><div class="agenda-name">${esc(r.name)}</div><div class="agenda-status">${esc(r.status)}</div></div>`).join('')}</div>`:'<div class="empty">هنوز موعدی ثبت نشده. برای اینکه برنامه معنی‌دار باشد، برای محتواها، کارها یا خروجی‌ها موعد تعیین کن.</div>'}</div>`;
+}
+function renderTeam(){
+  $('team-view').innerHTML=`<div class="section"><div class="section-head"><h2>اعضای فضای کاری</h2></div>
+  <div class="cards">${members.length?members.map(m=>`<div class="card"><div class="card-title">${esc(m.profiles?.full_name||'عضو تیم')}</div><div class="card-meta"><span class="badge">${esc(m.role||'MEMBER')}</span><span class="badge">${esc(m.user_id===session.user.id?'حساب من':'عضو تیم')}</span></div></div>`).join(''):'<div class="empty">عضوی پیدا نشد.</div>'}</div>
+  </div>
+  <div class="section"><div class="section-head"><h2>مقصدهای انتشار</h2><button class="btn btn-primary" onclick="openDestinationModal()">+ مقصد جدید</button></div>
+  <div class="cards">${destinations.length?destinations.map(d=>`<div class="card"><div class="card-title">${esc(d.name)}</div><div class="card-actions"><button class="btn btn-danger" onclick="deleteDestination('${d.id}')">حذف</button></div></div>`).join(''):'<div class="empty">هنوز مقصدی ساخته نشده.</div>'}</div></div>`;
+}
+
+/* ---------- production ---------- */
+function openAddProduction(){
+  openModal(`${modalHead('تولید جدید')}
+  <div class="form-grid"><div class="field full"><label>نام تولید *</label><input id="f-name" placeholder="مثلاً پوشش افتتاحیه"></div>
+  <div class="field"><label>مرحله</label><select id="f-stage">${Object.entries(STAGES).map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div>
+  <div class="field full"><label>یادداشت تولید</label><textarea id="f-notes" placeholder="خلاصه تصمیم‌ها، نکات اجرایی یا محدودیت‌ها..."></textarea></div></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveProduction()">ساخت تولید</button></div>`);
+}
+async function saveProduction(){
+  const name=$('f-name').value.trim();if(!name){toast('نام تولید الزامی است.','error');return}
+  try{
+    const {error}=await sb.from('productions').insert({project_id:currentProject.id,name,stage:$('f-stage').value,notes:$('f-notes').value.trim()||null});
+    if(error)throw error;closeModal();await loadProjectData();renderStats();switchTab('productions');toast('تولید ساخته شد.');
+  }catch(e){errorToast(e)}
+}
+function openProductionEdit(id){
+  const p=productions.find(x=>x.id===id);if(!p)return;
+  openModal(`${modalHead('ویرایش تولید')}
+  <div class="form-grid"><div class="field full"><label>نام تولید *</label><input id="f-name" value="${esc(p.name)}"></div>
+  <div class="field"><label>مرحله</label><select id="f-stage">${Object.entries(STAGES).map(([v,l])=>`<option value="${v}" ${p.stage===v?'selected':''}>${l}</option>`).join('')}</select></div>
+  <div class="field full"><label>یادداشت</label><textarea id="f-notes">${esc(p.notes||'')}</textarea></div></div>
+  <div class="modal-actions"><button class="btn btn-danger" onclick="deleteProduction('${id}')">حذف</button><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="updateProduction('${id}')">ذخیره</button></div>`);
+}
+async function updateProduction(id){
+  const name=$('f-name').value.trim();if(!name){toast('نام تولید الزامی است.','error');return}
+  const {error}=await sb.from('productions').update({name,stage:$('f-stage').value,notes:$('f-notes').value.trim()||null}).eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('productions');toast('تولید به‌روزرسانی شد.');
+}
+async function deleteProduction(id){
+  if(!confirm('حذف تولید، محتواها، کارها و خروجی‌های وابسته را هم حذف می‌کند. ادامه می‌دهی؟'))return;
+  const {error}=await sb.from('productions').delete().eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('productions');toast('تولید حذف شد.');
+}
+function openProductionDetail(id){
+  const p=productions.find(x=>x.id===id);if(!p)return;
+  const cs=contentItems.filter(c=>c.production_id===id),ts=tasks.filter(t=>t.production_id===id);
+  openModal(`${modalHead(p.name)}<div class="brief-grid">
+    ${brief('مرحله',STAGES[p.stage]||p.stage)}${brief('تعداد محتوا',cs.length)}
+    ${brief('کارهای باز',ts.filter(t=>t.status!=='done').length)}${brief('یادداشت',p.notes||'بدون یادداشت','full')}
+  </div><div class="modal-actions"><button class="btn btn-primary" onclick="closeModal();openContentForProduction('${id}')">افزودن محتوا</button></div>`);
+}
+function openContentForProduction(id){currentTab='content';switchTab('content');openAddContent(id)}
+
+/* ---------- content ---------- */
+function contentForm(c={} ,forcedProduction=null){
+  const prod=forcedProduction||c.production_id||productions[0]?.id||'';
+  return `<div class="form-grid">
+    <div class="field full"><label>نام آیتم *</label><input id="f-name" value="${esc(c.name||'')}" placeholder="مثلاً ویدیوی معرفی پزشک"></div>
+    <div class="field"><label>تولید *</label><select id="f-prod">${productions.map(p=>`<option value="${p.id}" ${prod===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>نوع محتوا</label><select id="f-type">${Object.entries(TYPES).map(([v,l])=>`<option value="${v}" ${c.content_type===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>وضعیت</label><select id="f-status">${Object.entries(CONTENT_STATUS).map(([v,l])=>`<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>اولویت</label><select id="f-priority">${Object.entries(PRIORITIES).map(([v,l])=>`<option value="${v}" ${c.priority===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>موعد</label><input id="f-deadline" type="date" value="${c.deadline||''}"></div>
+    <div class="field"><label>مسئول</label><select id="f-owner"><option value="">بدون مسئول</option>${members.map(m=>`<option value="${m.user_id}" ${c.owner_id===m.user_id?'selected':''}>${esc(m.profiles?.full_name||m.user_id.slice(0,8))}</option>`).join('')}</select></div>
+    <div class="field full"><label>توضیح</label><textarea id="f-desc">${esc(c.description||'')}</textarea></div>
+    <div class="field full"><label>یادداشت اجرایی</label><textarea id="f-notes">${esc(c.notes||'')}</textarea></div>
+  </div>`;
+}
+function openAddContent(forcedProduction=null){
+  if(!productions.length){toast('اول یک تولید بساز.','error');return}
+  openModal(`${modalHead('آیتم محتوای جدید')}${contentForm({},forcedProduction)}
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveContent()">ساخت آیتم</button></div>`);
+}
+function openAddContentItem(){openAddContent()}
+async function saveContent(){
+  const name=$('f-name').value.trim();if(!name){toast('نام آیتم الزامی است.','error');return}
+  const deadline=$('f-deadline').value||null;
+  try{
+    const {error}=await sb.from('content_items').insert({
+      production_id:$('f-prod').value,name,content_type:$('f-type').value,status:$('f-status').value,
+      priority:$('f-priority').value,deadline,owner_id:$('f-owner').value||null,
+      description:$('f-desc').value.trim()||null,notes:$('f-notes').value.trim()||null
+    });if(error)throw error;closeModal();await loadProjectData();renderStats();switchTab('content');toast('آیتم محتوا ساخته شد.');
+  }catch(e){errorToast(e)}
+}
+function openContentEdit(id){
+  const c=contentItems.find(x=>x.id===id);if(!c)return;
+  openModal(`${modalHead('ویرایش آیتم محتوا')}${contentForm(c)}
+  <div class="modal-actions"><button class="btn btn-danger" onclick="deleteContent('${id}')">حذف</button><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="updateContent('${id}')">ذخیره</button></div>`);
+}
+async function updateContent(id){
+  const name=$('f-name').value.trim();if(!name){toast('نام آیتم الزامی است.','error');return}
+  const {error}=await sb.from('content_items').update({
+    production_id:$('f-prod').value,name,content_type:$('f-type').value,status:$('f-status').value,
+    priority:$('f-priority').value,deadline:$('f-deadline').value||null,owner_id:$('f-owner').value||null,
+    description:$('f-desc').value.trim()||null,notes:$('f-notes').value.trim()||null
+  }).eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('content');toast('آیتم به‌روزرسانی شد.');
+}
+async function deleteContent(id){
+  if(!confirm('حذف این آیتم، خروجی‌ها و کارهای وابسته به آن را نیز حذف می‌کند. ادامه می‌دهی؟'))return;
+  const {error}=await sb.from('content_items').delete().eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('content');toast('آیتم حذف شد.');
+}
+function openContentDetail(id){
+  const c=contentItems.find(x=>x.id===id);if(!c)return;
+  const ds=deliverables.filter(d=>d.content_item_id===id),ts=tasks.filter(t=>t.content_item_id===id);
+  openModal(`${modalHead(c.name)}<div class="brief-grid">
+  ${brief('تولید',productionName(c.production_id))}${brief('نوع',TYPES[c.content_type]||c.content_type)}
+  ${brief('وضعیت',CONTENT_STATUS[c.status]||c.status)}${brief('مسئول',memberName(c.owner_id))}
+  ${brief('موعد',fmtDate(c.deadline))}${brief('خروجی‌ها',ds.length)}
+  ${brief('توضیح',c.description||'بدون توضیح','full')}${brief('یادداشت',c.notes||'بدون یادداشت','full')}
+  </div><div class="modal-actions"><button class="btn btn-primary" onclick="closeModal();openAddDeliverableFor('${id}')">+ خروجی</button><button class="btn" onclick="closeModal();openAddTaskFor('${id}')">+ کار</button></div>`);
+}
+
+/* ---------- tasks ---------- */
+function taskForm(t={},forcedContent=null){
+  const prod=t.production_id||productions[0]?.id||'';
+  const cid=forcedContent||t.content_item_id||'';
+  const prodContent=contentItems.filter(c=>c.production_id===prod);
+  return `<div class="form-grid">
+    <div class="field full"><label>عنوان کار *</label><input id="f-title" value="${esc(t.title||'')}" placeholder="مثلاً تدوین نسخه اصلی"></div>
+    <div class="field"><label>تولید *</label><select id="f-prod" onchange="refreshTaskContentOptions()">${productions.map(p=>`<option value="${p.id}" ${prod===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>آیتم محتوا</label><select id="f-content"><option value="">بدون اتصال مستقیم</option>${prodContent.map(c=>`<option value="${c.id}" ${cid===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>وضعیت</label><select id="f-status">${Object.entries(TASK_STATUS).map(([v,l])=>`<option value="${v}" ${t.status===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>اولویت</label><select id="f-priority">${Object.entries(PRIORITIES).map(([v,l])=>`<option value="${v}" ${t.priority===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>مسئول</label><select id="f-assignee"><option value="">بدون مسئول</option>${members.map(m=>`<option value="${m.user_id}" ${t.assignee_id===m.user_id?'selected':''}>${esc(m.profiles?.full_name||m.user_id.slice(0,8))}</option>`).join('')}</select></div>
+    <div class="field"><label>موعد</label><input id="f-deadline" type="date" value="${t.deadline||''}"></div>
+    <div class="field full"><label>توضیح</label><textarea id="f-desc">${esc(t.description||'')}</textarea></div>
+  </div>`;
+}
+function refreshTaskContentOptions(){
+  const prod=$('f-prod').value,selected=$('f-content').value;
+  $('f-content').innerHTML='<option value="">بدون اتصال مستقیم</option>'+contentItems.filter(c=>c.production_id===prod).map(c=>`<option value="${c.id}" ${selected===c.id?'selected':''}>${esc(c.name)}</option>`).join('');
+}
+function openAddTaskFor(contentId=null){
+  if(!productions.length){toast('اول یک تولید بساز.','error');return}
+  const c=contentId?contentItems.find(x=>x.id===contentId):null;
+  openModal(`${modalHead('کار جدید')}${taskForm(c?{production_id:c.production_id,content_item_id:c.id}: {})}
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveTask()">ساخت کار</button></div>`);
+}
+async function saveTask(){
+  const title=$('f-title').value.trim();if(!title){toast('عنوان کار الزامی است.','error');return}
+  const {error}=await sb.from('tasks').insert({
+    production_id:$('f-prod').value,title,content_item_id:$('f-content').value||null,
+    description:$('f-desc').value.trim()||null,assignee_id:$('f-assignee').value||null,
+    priority:$('f-priority').value,status:$('f-status').value,deadline:$('f-deadline').value||null
+  });
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('tasks');toast('کار ساخته شد.');
+}
+function openTaskEdit(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  openModal(`${modalHead('ویرایش کار')}${taskForm(t)}
+  <div class="modal-actions"><button class="btn btn-danger" onclick="deleteTask('${id}')">حذف</button><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="updateTask('${id}')">ذخیره</button></div>`);
+}
+async function updateTask(id){
+  const title=$('f-title').value.trim();if(!title){toast('عنوان کار الزامی است.','error');return}
+  const {error}=await sb.from('tasks').update({
+    production_id:$('f-prod').value,title,content_item_id:$('f-content').value||null,
+    description:$('f-desc').value.trim()||null,assignee_id:$('f-assignee').value||null,
+    priority:$('f-priority').value,status:$('f-status').value,deadline:$('f-deadline').value||null
+  }).eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('tasks');toast('کار به‌روزرسانی شد.');
+}
+async function deleteTask(id){
+  if(!confirm('این کار حذف شود؟'))return;
+  const {error}=await sb.from('tasks').delete().eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('tasks');toast('کار حذف شد.');
+}
+function quickTaskStatus(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  const vals=Object.keys(TASK_STATUS),idx=Math.max(0,vals.indexOf(t.status));
+  const next=vals[(idx+1)%vals.length];
+  updateTaskStatus(id,next);
+}
+async function updateTaskStatus(id,status){
+  const {error}=await sb.from('tasks').update({status}).eq('id',id);
+  if(error){errorToast(error);return}await loadProjectData();renderStats();switchTab('tasks');toast('وضعیت کار تغییر کرد.');
+}
+
+/* ---------- deliverables / destinations ---------- */
+function deliverableForm(d={},forcedContent=null){
+  const cid=forcedContent||d.content_item_id||contentItems[0]?.id||'';
+  return `<div class="form-grid">
+    <div class="field full"><label>نام خروجی *</label><input id="f-name" value="${esc(d.name||'')}" placeholder="مثلاً نسخه ریلز 9:16"></div>
+    <div class="field"><label>آیتم محتوا *</label><select id="f-content">${contentItems.map(c=>`<option value="${c.id}" ${cid===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>مقصد انتشار</label><select id="f-dest"><option value="">بدون مقصد</option>${destinations.map(x=>`<option value="${x.id}" ${d.destination_id===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>فرمت</label><input id="f-format" value="${esc(d.format||'')}" placeholder="مثلاً 1080×1920 / MP4"></div>
+    <div class="field"><label>نسخه</label><input id="f-version" value="${esc(d.version||'V01')}" placeholder="V01"></div>
+    <div class="field"><label>وضعیت</label><select id="f-status">${Object.entries(DEL_STATUS).map(([v,l])=>`<option value="${v}" ${d.status===v?'selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="field"><label>موعد تحویل</label><input id="f-deadline" type="date" value="${d.deadline||''}"></div>
+    <div class="field"><label>تاریخ انتشار</label><input id="f-release" type="date" value="${d.release_date||''}"></div>
+  </div>`;
+}
+function openAddDeliverableFor(contentId=null){
+  if(!contentItems.length){toast('اول یک آیتم محتوا بساز.','error');return}
+  openModal(`${modalHead('خروجی جدید')}${deliverableForm({},contentId)}
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveDeliverable()">ساخت خروجی</button></div>`);
+}
+function openAddDeliverable(){openAddDeliverableFor()}
+async function saveDeliverable(){
+  const name=$('f-name').value.trim();if(!name){toast('نام خروجی الزامی است.','error');return}
+  const deadline=$('f-deadline').value||null,release=$('f-release').value||null;
+  if(deadline&&release&&release<deadline){toast('تاریخ انتشار نمی‌تواند قبل از موعد تحویل باشد.','error');return}
+  const {error}=await sb.from('deliverables').insert({
+    name,content_item_id:$('f-content').value,destination_id:$('f-dest').value||null,
+    format:$('f-format').value.trim()||null,version:$('f-version').value.trim()||'V01',
+    status:$('f-status').value,deadline,release_date:release
+  });
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('deliverables');toast('خروجی ساخته شد.');
+}
+function openDeliverableEdit(id){
+  const d=deliverables.find(x=>x.id===id);if(!d)return;
+  openModal(`${modalHead('ویرایش خروجی')}${deliverableForm(d)}
+  <div class="modal-actions"><button class="btn btn-danger" onclick="deleteDeliverable('${id}')">حذف</button><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="updateDeliverable('${id}')">ذخیره</button></div>`);
+}
+async function updateDeliverable(id){
+  const name=$('f-name').value.trim();if(!name){toast('نام خروجی الزامی است.','error');return}
+  const deadline=$('f-deadline').value||null,release=$('f-release').value||null;
+  if(deadline&&release&&release<deadline){toast('تاریخ انتشار نمی‌تواند قبل از موعد تحویل باشد.','error');return}
+  const {error}=await sb.from('deliverables').update({
+    name,content_item_id:$('f-content').value,destination_id:$('f-dest').value||null,
+    format:$('f-format').value.trim()||null,version:$('f-version').value.trim()||'V01',
+    status:$('f-status').value,deadline,release_date:release
+  }).eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('deliverables');toast('خروجی به‌روزرسانی شد.');
+}
+async function deleteDeliverable(id){
+  if(!confirm('این خروجی حذف شود؟'))return;
+  const {error}=await sb.from('deliverables').delete().eq('id',id);
+  if(error){errorToast(error);return}closeModal();await loadProjectData();renderStats();switchTab('deliverables');toast('خروجی حذف شد.');
+}
+function openDestinationModal(){
+  openModal(`${modalHead('مقصد انتشار جدید')}<div class="field"><label>نام مقصد *</label><input id="dest-name" placeholder="مثلاً Instagram"></div>
+  <div class="modal-actions"><button class="btn" onclick="closeModal()">انصراف</button><button class="btn btn-primary" onclick="saveDestination()">ساخت مقصد</button></div>`,true);
+}
+async function saveDestination(){
+  const name=$('dest-name').value.trim();if(!name){toast('نام مقصد الزامی است.','error');return}
+  const {error}=await sb.from('destinations').insert({org_id:org.id,name});
+  if(error){errorToast(error);return}closeModal();await loadDestinations();renderTeam();toast('مقصد ساخته شد.');
+}
+async function deleteDestination(id){
+  if(deliverables.some(d=>d.destination_id===id)){toast('این مقصد در خروجی‌های پروژه استفاده شده و فعلاً قابل حذف نیست.','error');return}
+  if(!confirm('مقصد حذف شود؟'))return;
+  const {error}=await sb.from('destinations').delete().eq('id',id);
+  if(error){errorToast(error);return}await loadDestinations();renderTeam();toast('مقصد حذف شد.');
+}
+
+/* ---------- quick add ---------- */
+function openQuickAdd(){
+  openModal(`${modalHead('افزودن سریع')}<div class="cards">
+    <button class="card" style="text-align:right" onclick="closeModal();openAddProduction()"><div class="card-title">تولید جدید</div><div class="card-sub">یک جریان تولید داخل پروژه بساز</div></button>
+    <button class="card" style="text-align:right" onclick="closeModal();openAddContent()"><div class="card-title">آیتم محتوا</div><div class="card-sub">ویدیو، عکس، صوت یا گرافیک</div></button>
+    <button class="card" style="text-align:right" onclick="closeModal();openAddTaskFor()"><div class="card-title">کار جدید</div><div class="card-sub">یک اقدام اجرایی با مسئول و موعد</div></button>
+    <button class="card" style="text-align:right" onclick="closeModal();openAddDeliverableFor()"><div class="card-title">خروجی جدید</div><div class="card-sub">نسخه مشخص برای یک مقصد انتشار</div></button>
+  </div>`);
+}
+
+/* ---------- keyboard / init ---------- */
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+sb.auth.onAuthStateChange((_event,s)=>{if(s&&(!session||session.user.id!==s.user.id)){session=s;bootApp()}});
+
+(async function init(){
+  try{
+    const {data,error}=await sb.auth.getSession();
+    if(error)throw error;
+    if(data.session){session=data.session;await bootApp()}
+  }catch(e){console.error(e);$('auth-error').textContent='اتصال به Supabase برقرار نشد.'}
+})();
+</script>
+</body>
+</html>
