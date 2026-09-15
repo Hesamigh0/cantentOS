@@ -9,9 +9,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
-    --bg:#0A0F1A; --panel:#10182A; --card:#151F35; --card-hover:#1B2740;
-    --border:#223049; --text:#EAF0F6; --muted:#7C8AA0;
-    --teal:#35B4A6; --teal-dim:#1F5F58; --gold:#E4A73B; --coral:#E0665C;
+    --bg:#FFFFFF; --panel:#FAFAFA; --card:#FAFAFA; --card-hover:#F4F4F5;
+    --border:#E4E4E7; --text:#18181B; --muted:#71717A;
+    --teal:#18181B; --teal-dim:#27272A; --gold:#D97706; --coral:#E11D48;
+    --up:#059669; --up-bg:#ECFDF5; --down:#E11D48; --down-bg:#FFF1F2;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{background:var(--bg); color:var(--text); font-family:'Vazirmatn',sans-serif; min-height:100vh; font-size:15px;}
@@ -37,7 +38,7 @@
     padding:11px; border-radius:10px; cursor:pointer; transition:filter .15s, transform .15s;
   }
   .btn:active{ transform:scale(.98); }
-  .btn-primary{ background:var(--teal); color:#06201C; }
+  .btn-primary{ background:var(--teal); color:#FFFFFF; }
   .btn-primary:hover{ filter:brightness(1.08); }
   .btn-ghost{ background:var(--card); color:var(--muted); }
   .auth-toggle{ text-align:center; font-size:12.5px; color:var(--muted); cursor:pointer; }
@@ -72,15 +73,24 @@
   .topbar{ display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:20px; gap:16px; flex-wrap:wrap; }
   .topbar h1{ font-size:21px; font-weight:800; }
   .topbar p{ color:var(--muted); font-size:13px; margin-top:4px; }
-  .add-btn{ background:var(--teal); color:#06201C; border:none; font-family:inherit; font-weight:700; font-size:13px; padding:9px 15px; border-radius:999px; cursor:pointer; }
+  .add-btn{ background:var(--teal); color:#FFFFFF; border:none; font-family:inherit; font-weight:700; font-size:13px; padding:9px 15px; border-radius:999px; cursor:pointer; }
 
   .tabs{ display:flex; gap:4px; border-bottom:1px solid var(--border); margin-bottom:18px; overflow-x:auto; }
   .tab{ padding:9px 14px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; white-space:nowrap; }
   .tab.active{ color:var(--text); border-color:var(--teal); }
 
+  .stats-row{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px; }
+  .stat-card{
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;
+    transition: border-color .15s, background .15s;
+  }
+  .stat-card .label{ font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+  .stat-card .value{ font-size:26px; font-weight:900; letter-spacing:-0.02em; }
+  @media (max-width:720px){ .stats-row{ grid-template-columns:repeat(2,1fr); } }
+
   .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
   .item-card{
-    background:var(--card); border-radius:14px; padding:13px; border-right:3px solid var(--border);
+    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px; border-right:3px solid var(--border);
     display:flex; flex-direction:column; gap:7px; cursor:default;
   }
   .item-card .tag{ font-size:10.5px; color:var(--muted); }
@@ -150,6 +160,7 @@
         <div><h1 id="p-name">—</h1><p id="p-desc">—</p></div>
         <button class="add-btn" id="tab-add-btn" onclick="openTabAddModal()">+ افزودن</button>
       </div>
+      <div class="stats-row" id="stats-row"></div>
       <div class="tabs">
         <div class="tab active" data-tab="productions" onclick="switchTab('productions')">Production ها</div>
         <div class="tab" data-tab="content" onclick="switchTab('content')">Content Item ها</div>
@@ -170,7 +181,7 @@
 // =========================================================
 // CONFIG — replace with your Supabase project values
 // =========================================================
-const SUPABASE_URL = 'https://xhtquipeztttwacfbtmr.supabase.co';
+const SUPABASE_URL = 'https://xhtquipezttwacfbtmr.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_pLIne7xvbZW4B6DxzPmr-Q_onpFV1eg';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -247,13 +258,9 @@ function openOrgCreateModal(){
 async function createOrg(){
   const name = document.getElementById('org-input').value.trim();
   if(!name) return;
-  const { data: newOrg, error } = await sb.from('organizations').insert({ name, owner_id: session.user.id }).select().single();
+  const { data: newOrg, error } = await sb.rpc('create_organization_with_owner', { org_name: name });
   if(error){ alert(error.message); return; }
-  await sb.from('org_members').insert({ org_id: newOrg.id, user_id: session.user.id, role: 'OWNER' });
-  // seed default destinations
-  const defaults = ['اینستاگرام','یوتیوب','وبسایت','تلگرام','تحویل به مشتری'];
-  await sb.from('destinations').insert(defaults.map(n => ({ org_id: newOrg.id, name: n })));
-  org = { id: newOrg.id, name };
+  org = { id: newOrg.id, name: newOrg.name };
   document.getElementById('org-name').textContent = org.name;
   closeModal();
   await loadProjects();
@@ -307,7 +314,26 @@ async function selectProject(id){
   document.getElementById('p-name').textContent = currentProject.name;
   document.getElementById('p-desc').textContent = currentProject.description || 'بدون توضیح';
   await loadProductions();
+  await loadContentItems();
+  await loadTasks();
+  await loadDeliverables();
+  renderStats();
   switchTab('productions');
+}
+
+function renderStats(){
+  const openTasks = tasks.filter(t => t.status !== 'done').length;
+  const stats = [
+    { label: 'Production ها', value: productions.length },
+    { label: 'Content Item ها', value: contentItems.length },
+    { label: 'Task باز', value: openTasks },
+    { label: 'Deliverable ها', value: deliverables.length },
+  ];
+  document.getElementById('stats-row').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="label">${s.label}</div>
+      <div class="value">${s.value}</div>
+    </div>`).join('');
 }
 
 // ---------- LOADERS ----------
